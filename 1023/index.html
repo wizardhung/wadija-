@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>臺語翻譯 API 測試工具</title>
+    <!-- 載入 Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 設置字體 -->
+    <style>
+      body {
+        font-family: "Inter", sans-serif;
+      }
+    </style>
+  </head>
+  <body class="bg-gray-50 flex items-center justify-center min-h-screen p-4">
+    <div
+      class="w-full max-w-2xl bg-white shadow-xl rounded-xl p-8 space-y-6 border border-gray-200"
+    >
+      <h1
+        class="text-3xl font-extrabold text-gray-800 text-center border-b pb-4"
+      >
+        華語轉臺語羅馬字 & 台語數字調語音合成
+      </h1>
+
+      <!-- 服務狀態提示 -->
+      <div
+        id="serviceStatus"
+        class="p-3 text-sm rounded-lg bg-yellow-100 text-yellow-700 font-medium"
+      >
+        請確認 API 服務 (translation_api.py) 已在 Python 3.7 環境中運行於
+        http://127.0.0.1:5000
+      </div>
+
+      <!-- 輸入區 -->
+      <div class="space-y-4">
+        <label
+          for="chineseInput"
+          class="block text-lg font-semibold text-gray-700"
+          >輸入華語文本：</label
+        >
+        <textarea
+          id="chineseInput"
+          placeholder="例如：我今天真歡喜，因為我的電腦問題解決矣！"
+          rows="4"
+          class="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 transition duration-150 shadow-sm text-gray-800"
+        ></textarea>
+        <button
+          id="translateButton"
+          onclick="translateAndSpeak()"
+          class="w-full px-6 py-3 bg-indigo-600 text-white font-bold rounded-lg shadow-md hover:bg-indigo-700 transition duration-200 focus:outline-none focus:ring-4 focus:ring-indigo-500 focus:ring-opacity-50 disabled:bg-indigo-400"
+        >
+          一鍵翻譯並合成語音
+        </button>
+      </div>
+
+      <!-- 輸出結果區 -->
+      <div class="pt-4 border-t">
+        <h2 class="text-xl font-bold text-gray-800 mb-3">翻譯結果 (TLPA)</h2>
+        <div
+          id="resultOutput"
+          class="min-h-20 p-4 bg-indigo-50 rounded-lg border-indigo-200 border-2 font-mono text-indigo-800 whitespace-pre-wrap text-lg"
+        >
+          <!-- 結果將顯示在此處 -->
+          等待輸入...
+        </div>
+        <p id="timeTaken" class="text-sm text-gray-500 mt-2 text-right"></p>
+      </div>
+
+      <!-- 台語數字調輸入區 -->
+      <div class="space-y-4">
+        <label
+          for="tonalNumberInput"
+          class="block text-lg font-semibold text-gray-700"
+          >輸入台語數字調文本：</label
+        >
+        <textarea
+          id="tonalNumberInput"
+          placeholder="例如：gua2 tsiann5 tsiok4 huann7 hi2"
+          rows="3"
+          class="w-full p-3 border border-gray-300 rounded-lg focus:ring-green-500 focus:border-green-500 transition duration-150 shadow-sm text-gray-800"
+        ></textarea>
+        <button
+          id="synthesizeButton"
+          onclick="synthesizeTonalNumber()"
+          class="w-full px-6 py-3 bg-green-600 text-white font-bold rounded-lg shadow-md hover:bg-green-700 transition duration-200 focus:outline-none focus:ring-4 focus:ring-green-500 focus:ring-opacity-50 disabled:bg-green-400"
+        >
+          重新合成語音（可選）
+        </button>
+      </div>
+
+      <!-- 語音輸出區 -->
+      <div class="pt-4 border-t">
+        <h2 class="text-xl font-bold text-gray-800 mb-3">台語語音輸出</h2>
+        <div id="audioContainer" class="space-y-3">
+          <div id="audioPlaceholder" class="p-4 bg-gray-100 rounded-lg text-gray-600 text-center">
+            等待語音合成...
+          </div>
+          <div id="audioPlayer" class="hidden space-y-3">
+            <audio id="audioElement" controls class="w-full rounded-lg"></audio>
+            <p id="audioStatus" class="text-sm text-gray-600"></p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const TRANSLATE_API_URL = "http://127.0.0.1:5000/translate";
+      const SYNTHESIZE_API_URL = "http://127.0.0.1:5000/synthesize_tonal_number";
+      
+      const chineseInputElement = document.getElementById("chineseInput");
+      const resultOutput = document.getElementById("resultOutput");
+      const translateButton = document.getElementById("translateButton");
+      const timeTaken = document.getElementById("timeTaken");
+      
+      const tonalNumberInput = document.getElementById("tonalNumberInput");
+      const synthesizeButton = document.getElementById("synthesizeButton");
+      const audioElement = document.getElementById("audioElement");
+      const audioContainer = document.getElementById("audioContainer");
+      const audioPlaceholder = document.getElementById("audioPlaceholder");
+      const audioPlayer = document.getElementById("audioPlayer");
+      const audioStatus = document.getElementById("audioStatus");
+
+      /**
+       * 翻譯華語並自動觸發語音合成
+       */
+      async function translateAndSpeak() {
+        const text = chineseInputElement.value.trim();
+        if (!text) {
+          resultOutput.textContent = "請輸入您要翻譯的華語文本。";
+          resultOutput.classList.remove("bg-red-100", "text-red-800");
+          resultOutput.classList.add("bg-indigo-50", "text-indigo-800");
+          return;
+        }
+
+        resultOutput.textContent = "正在連線並翻譯中，請稍候...";
+        resultOutput.classList.remove("bg-red-100", "text-red-800");
+        resultOutput.classList.add(
+          "bg-yellow-100",
+          "text-yellow-700",
+          "animate-pulse"
+        );
+        translateButton.disabled = true;
+        synthesizeButton.disabled = true; // 避免同時點擊
+        timeTaken.textContent = "";
+
+        const startTime = performance.now();
+
+        try {
+          const response = await fetch(TRANSLATE_API_URL, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ text: text }),
+            // 設定較短的超時 (5秒，因為現在應該很快)
+            signal: AbortSignal.timeout(5000),
+          });
+
+          const endTime = performance.now();
+          const duration = ((endTime - startTime) / 1000).toFixed(2);
+          timeTaken.textContent = `翻譯耗時: ${duration} 秒`;
+
+          const data = await response.json();
+
+          resultOutput.classList.remove(
+            "bg-yellow-100",
+            "text-yellow-700",
+            "animate-pulse"
+          );
+
+          if (response.ok) {
+            // 成功 - 顯示數字調結果
+            const tonalResult = data.tonal_number_result || data.tlpa_result;
+            resultOutput.textContent = tonalResult;
+            resultOutput.classList.add("bg-indigo-50", "text-indigo-800");
+            resultOutput.classList.remove("bg-red-100", "text-red-800");
+            
+            // 自動填充到 TTS 輸入框
+            tonalNumberInput.value = tonalResult;
+
+            // 自動進行語音合成
+            audioPlaceholder.textContent = "已取得數字調，開始合成語音...";
+            audioPlaceholder.classList.remove("text-gray-600", "text-red-600");
+            audioPlaceholder.classList.add("text-yellow-600");
+            await synthesizeFromText(tonalResult, true);
+          } else {
+            // API 返回錯誤 (4xx/5xx)
+            const errorMsg =
+              data.error || `[${response.status}] 發生未知 API 錯誤。`;
+            resultOutput.textContent = `錯誤: ${errorMsg}`;
+            resultOutput.classList.add("bg-red-100", "text-red-800");
+            resultOutput.classList.remove("bg-indigo-50", "text-indigo-800");
+          }
+        } catch (error) {
+          // 連線或超時錯誤
+          resultOutput.classList.remove(
+            "bg-yellow-100",
+            "text-yellow-700",
+            "animate-pulse"
+          );
+          resultOutput.classList.add("bg-red-100", "text-red-800");
+
+          if (error.name === "AbortError") {
+            resultOutput.textContent =
+              "錯誤: 連線超時 (Timeout)。請檢查 translation_api.py 服務是否啟動且運行速度正常。";
+          } else if (error.message.includes("Failed to fetch")) {
+            resultOutput.textContent =
+              "錯誤: 無法連線到 API (連線拒絕)。請確認 translation_api.py 服務正在運行於 5000 Port。";
+          } else {
+            resultOutput.textContent = `發生網路錯誤: ${error.message}`;
+          }
+        } finally {
+          translateButton.disabled = false;
+          synthesizeButton.disabled = false;
+        }
+      }
+
+      /**
+       * 處理台語數字調語音合成
+       */
+      async function synthesizeTonalNumber() {
+        const text = tonalNumberInput.value.trim();
+        return synthesizeFromText(text, false);
+      }
+
+      /**
+       * 共用的語音合成流程（可被翻譯流程自動觸發或手動觸發）
+       * @param {string} text - 台語數字調文本
+       * @param {boolean} autoTriggered - 是否由翻譯流程自動觸發
+       */
+      async function synthesizeFromText(text, autoTriggered = false) {
+        if (!text) {
+          audioPlaceholder.textContent = autoTriggered
+            ? "自動流程：翻譯未取得有效數字調，請重試。"
+            : "請輸入台語數字調文本。";
+          audioPlaceholder.classList.add("text-red-600");
+          synthesizeButton.disabled = false;
+          translateButton.disabled = false;
+          return;
+        }
+
+        audioPlaceholder.textContent = autoTriggered
+          ? "正在自動合成語音..."
+          : "正在連線並合成語音中，請稍候...";
+        audioPlaceholder.classList.remove("text-gray-600", "text-red-600");
+        audioPlaceholder.classList.add("text-yellow-600");
+        synthesizeButton.disabled = true;
+        translateButton.disabled = true;
+
+        const startTime = performance.now();
+
+        try {
+          const response = await fetch(SYNTHESIZE_API_URL, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ text: text }),
+            // 設定更長的超時時間，因為TTS合成可能較慢
+            signal: AbortSignal.timeout(180000),
+          });
+
+          const endTime = performance.now();
+          const duration = ((endTime - startTime) / 1000).toFixed(2);
+
+          const data = await response.json();
+
+          if (response.ok) {
+            // 成功 - 顯示音檔播放器
+            const audioData = data.audio;
+            const binaryString = atob(audioData);
+            const bytes = new Uint8Array(binaryString.length);
+            for (let i = 0; i < binaryString.length; i++) {
+              bytes[i] = binaryString.charCodeAt(i);
+            }
+            const blob = new Blob([bytes], { type: 'audio/wav' });
+            const audioUrl = URL.createObjectURL(blob);
+            
+            audioElement.src = audioUrl;
+            audioStatus.textContent = `合成耗時: ${duration} 秒 (模式: ${data.mode})`;
+            
+            audioPlaceholder.classList.add("hidden");
+            audioPlayer.classList.remove("hidden");
+            audioElement.play().catch(() => {});
+          } else {
+            // API 返回錯誤
+            const errorMsg = data.error || `[${response.status}] 發生未知 API 錯誤。`;
+            audioPlaceholder.textContent = `錯誤: ${errorMsg}`;
+            audioPlaceholder.classList.remove("text-gray-600", "text-yellow-600");
+            audioPlaceholder.classList.add("text-red-600");
+            audioPlayer.classList.add("hidden");
+          }
+        } catch (error) {
+          // 連線或超時錯誤
+          audioPlayer.classList.add("hidden");
+          audioPlaceholder.classList.remove("text-gray-600", "text-yellow-600");
+          audioPlaceholder.classList.add("text-red-600");
+
+          if (error.name === "AbortError") {
+            audioPlaceholder.textContent =
+              "錯誤: 連線超時 (Timeout)。TTS 合成可能需要較長時間，請稍候後重試。";
+          } else if (error.message.includes("Failed to fetch")) {
+            audioPlaceholder.textContent =
+              "錯誤: 無法連線到 API (連線拒絕)。請確認 translation_api.py 服務正在運行於 5000 Port。";
+          } else {
+            audioPlaceholder.textContent = `發生網路錯誤: ${error.message}`;
+          }
+        } finally {
+          synthesizeButton.disabled = false;
+          translateButton.disabled = false;
+        }
+      }
+    </script>
+  </body>
+</html>
+
+
+<!-- cd /home/wizard/專題tts/1023 && \
+export LD_LIBRARY_PATH=/usr/lib/wsl/lib:$LD_LIBRARY_PATH && \
+conda run -n c2t python translation_api.py -->

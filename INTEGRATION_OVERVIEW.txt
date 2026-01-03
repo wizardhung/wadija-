@@ -1,0 +1,279 @@
+/**
+ * 台語 AI 語音對話系統 - 整合概要
+ * 
+ * 這個文件說明三個系統如何整合在一起
+ */
+
+=============================================================================
+                     系統架構圖 (System Architecture)
+=============================================================================
+
+                        ┌─────────────────┐
+                        │  Web Browser    │
+                        │  (使用者介面)    │
+                        └────────┬────────┘
+                                 │
+                        HTTP/WebSocket
+                                 │
+                        ┌────────▼────────┐
+                        │  Flask API      │
+                        │  (Port 5000)    │
+                        └────────┬────────┘
+                                 │
+                 ┌───────────────┼───────────────┐
+                 │               │               │
+         ┌───────▼──────┐ ┌─────▼──────┐ ┌─────▼──────┐
+         │  STT Module  │ │ LLM Module │ │ TTS Module │
+         │  (yating1)   │ │(wadija_llm)│ │(taiwanese) │
+         └──────────────┘ └────────────┘ └────────────┘
+                 │               │               │
+         ┌───────▼──────┐ ┌─────▼──────┐ ┌─────▼──────┐
+         │ Google Cloud │ │ OpenAI API │ │ Tacotron2  │
+         │   Speech     │ │   GPT-4    │ │ WaveGlow   │
+         └──────────────┘ └────────────┘ └────────────┘
+
+=============================================================================
+                        數據流程 (Data Flow)
+=============================================================================
+
+1. 語音輸入流程 (Speech Input):
+   
+   用戶說話 (Audio) 
+      → 瀏覽器錄音 (MediaRecorder API)
+      → WAV 格式音頻檔案
+      → POST /api/stt
+      → Google Cloud Speech-to-Text
+      → 文字結果 (Transcript)
+      → 顯示在對話框
+
+2. LLM 對話流程 (LLM Conversation):
+   
+   用戶文字 (Text)
+      → POST /api/chat
+      → 載入對話歷史 (Session Management)
+      → OpenAI GPT-4 API (Fine-tuned Model)
+      → AI 回應文字
+      → 更新對話歷史
+      → 顯示在對話框
+
+3. 語音合成流程 (Speech Synthesis):
+   
+   AI 回應文字 (Text)
+      → POST /api/tts
+      → 華語轉台語 (Chinese to Taiwanese)
+      → Tacotron2 模型 (Mel-spectrogram)
+      → WaveGlow 模型 (Waveform)
+      → WAV 音頻檔案
+      → 瀏覽器播放
+
+=============================================================================
+                        文件結構 (File Structure)
+=============================================================================
+
+專題tts/
+│
+├── 整合系統文件 (Integration Files)
+│   ├── integrated_voice_chat_api.py    # 後端 API (Flask)
+│   ├── voice_chat_interface.html       # 前端介面
+│   ├── start_voice_chat.sh            # 啟動腳本
+│   ├── check_voice_chat_setup.py      # 配置檢查工具
+│   └── requirements_voice_chat.txt    # 依賴套件列表
+│
+├── 文檔 (Documentation)
+│   ├── VOICE_CHAT_README.md           # 完整說明文件
+│   ├── QUICK_START_VOICE_CHAT.md      # 快速開始指南
+│   ├── USAGE_FLOW.md                  # 使用流程圖
+│   └── INTEGRATION_OVERVIEW.txt       # 本文件
+│
+├── yating1/ (STT Module)
+│   ├── main_corrector.py              # STT 主程式
+│   ├── newproject0901-470807-038aaaad5572.json  # Google 認證
+│   └── ...
+│
+├── wadija_llm/ (LLM Module)
+│   ├── main.py                        # LLM 主程式
+│   ├── rag_tools_v2.py                # RAG 工具
+│   ├── profile_db.json                # 長輩資料
+│   ├── .env                           # OpenAI API Key
+│   └── ...
+│
+└── taiwanese_tonal_tlpa_tacotron2_hsien1/ (TTS Module)
+    ├── taiwanese_tts_v2.py            # TTS 主程式
+    ├── synthesizer.py                 # 語音合成器
+    └── ...
+
+=============================================================================
+                        API 端點 (API Endpoints)
+=============================================================================
+
+Base URL: http://localhost:5000/api
+
+1. GET /health
+   描述: 檢查系統健康狀態
+   回應: {"status": "ok", "services": {...}}
+
+2. POST /stt
+   描述: 語音轉文字
+   輸入: audio (multipart/form-data 或 base64)
+   輸出: {"success": true, "transcript": "...", "confidence": 0.95}
+
+3. POST /chat
+   描述: LLM 對話
+   輸入: {"message": "...", "session_id": "..."}
+   輸出: {"success": true, "reply": "...", "session_id": "..."}
+
+4. POST /tts
+   描述: 文字轉語音
+   輸入: {"text": "..."}
+   輸出: audio/wav 文件
+
+5. POST /reset_session
+   描述: 重置對話會話
+   輸入: {"session_id": "..."}
+   輸出: {"success": true, "message": "會話已重置"}
+
+=============================================================================
+                        依賴關係 (Dependencies)
+=============================================================================
+
+核心依賴:
+- Flask 2.0+              (Web 框架)
+- flask-cors 3.0+         (跨域支援)
+- google-cloud-speech 2.0+ (STT 服務)
+- openai 1.0+             (LLM 服務)
+- python-dotenv 0.19+     (環境變數管理)
+- pyaudio 0.2+            (音頻處理)
+
+TTS 模組依賴:
+- torch                   (深度學習框架)
+- scipy                   (科學計算)
+- librosa                 (音頻分析)
+- numpy                   (數值計算)
+
+=============================================================================
+                        配置需求 (Configuration)
+=============================================================================
+
+1. Google Cloud 認證 (STT)
+   位置: yating1/newproject0901-470807-038aaaad5572.json
+   用途: Google Speech-to-Text API 認證
+
+2. OpenAI API Key (LLM)
+   位置: wadija_llm/.env
+   格式: OPENAI_API_KEY=sk-...
+   用途: OpenAI GPT-4 API 認證
+
+3. Python 環境
+   需求: Python 3.8+
+   建議: 使用 conda 環境 'c2t'
+
+=============================================================================
+                        啟動步驟 (Startup)
+=============================================================================
+
+1. 準備環境
+   conda activate c2t
+
+2. 檢查配置
+   python check_voice_chat_setup.py
+
+3. 啟動後端
+   ./start_voice_chat.sh
+   或
+   python integrated_voice_chat_api.py
+
+4. 開啟前端
+   在瀏覽器打開 voice_chat_interface.html
+
+=============================================================================
+                        測試流程 (Testing)
+=============================================================================
+
+1. 系統健康檢查
+   curl http://localhost:5000/api/health
+
+2. STT 測試
+   # 準備音頻文件 test.wav
+   curl -X POST -F "audio=@test.wav" http://localhost:5000/api/stt
+
+3. LLM 測試
+   curl -X POST http://localhost:5000/api/chat \
+     -H "Content-Type: application/json" \
+     -d '{"message":"你好","session_id":"test"}'
+
+4. TTS 測試
+   curl -X POST http://localhost:5000/api/tts \
+     -H "Content-Type: application/json" \
+     -d '{"text":"你好"}' \
+     -o output.wav
+
+=============================================================================
+                        常見問題 (FAQ)
+=============================================================================
+
+Q: 如何解決麥克風權限問題？
+A: 在瀏覽器設置中允許該網站使用麥克風
+
+Q: STT 識別不準確怎麼辦？
+A: 1) 確保環境安靜 2) 靠近麥克風說話 3) 語速適中
+
+Q: LLM 回應很慢？
+A: 這是正常的，OpenAI API 需要幾秒鐘處理時間
+
+Q: TTS 語音不自然？
+A: 這取決於模型質量，可以嘗試調整文字輸入方式
+
+Q: 如何更換 LLM 模型？
+A: 修改 integrated_voice_chat_api.py 中的 FINE_TUNED_MODEL 變數
+
+=============================================================================
+                        性能優化 (Optimization)
+=============================================================================
+
+1. 錄音質量
+   - 使用高質量麥克風
+   - 採樣率: 16kHz
+   - 位深度: 16-bit
+
+2. API 回應速度
+   - 使用 CDN 加速
+   - 啟用 Gzip 壓縮
+   - 實施請求快取
+
+3. TTS 生成速度
+   - 預先載入模型
+   - 快取常用語句
+   - 使用 GPU 加速
+
+4. 記憶體管理
+   - 限制對話歷史 (20 輪)
+   - 定期清理會話
+   - 優化音頻緩衝
+
+=============================================================================
+                        安全考量 (Security)
+=============================================================================
+
+1. API 金鑰保護
+   - 不要將金鑰提交到版本控制
+   - 使用環境變數儲存
+   - 定期輪換金鑰
+
+2. CORS 設定
+   - 生產環境限制來源
+   - 使用白名單機制
+
+3. 輸入驗證
+   - 檢查音頻文件大小
+   - 限制文字長度
+   - 防止 SQL 注入
+
+4. 速率限制
+   - 限制 API 請求頻率
+   - 防止濫用
+
+=============================================================================
+
+最後更新: 2025-12-17
+版本: 1.0.0
+作者: 專題 TTS 團隊

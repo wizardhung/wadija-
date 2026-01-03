@@ -1,0 +1,224 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+STT 路由整合文件
+說明整合好的語音輸入功能
+
+本文件展示：
+1. 完整的語音 → 文字流程
+2. Google STT 信心度檢查
+3. Yating 台語 STT 自動切換
+4. 與 Chat API 集成（對話）
+5. 與 TTS API 集成（語音合成）
+"""
+
+print("""
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                    語音輸入功能整合文件                                        ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+### 1️⃣  STT 端點 (/api/stt) - 語音轉文字
+
+📌 端點：POST /api/stt
+📋 描述：智能語音識別，根據信心度自動在 Google 和 Yating STT 間切換
+
+🔹 輸入（JSON）：
+{
+  "audio": "<base64 編碼的 PCM 音頻數據>",
+  "sample_rate": 16000  // 可選，預設 16000 Hz
+}
+
+📤 回應：
+{
+  "success": true,
+  "provider": "google" | "yating" | "google_low_conf",
+  "transcript": "辨識結果文字",
+  "confidence": 0.95,              // Google 提供，Yating 為 null
+  "google_confidence": 0.75        // 當使用 Yating 時顯示 Google 的信心度
+}
+
+🎯 路由邏輯：
+  1. 先用 Google STT（支援台語、中文、英文）
+  2. 檢查 Google 信心度
+  3. 若信心度 ≥ 80%：直接返回 Google 結果（provider="google"）
+  4. 若信心度 < 80%：自動切換 Yating 台語 STT（provider="yating"）
+  5. 若 Yating 失敗但 Google 有結果：返回低信心的 Google 結果
+  6. 若都失敗：返回錯誤
+
+### 2️⃣  完整使用案例
+
+✅ 案例 A：清晰的台語
+  - Google STT 信心度：95%
+  - 直接返回 Google 結果（高可信度）
+
+✅ 案例 B：口音重的台語 / 環境雜音
+  - Google STT 信心度：60%
+  - 自動切換到 Yating STT（台語專用）
+  - 返回 Yating 辨識結果
+
+✅ 案例 C：中文
+  - Google STT 信心度：90%
+  - 直接返回 Google 結果
+
+### 3️⃣  與 Chat API 整合
+
+流程：
+  音頻 → STT API （提取文字）
+        ↓
+      Chat API （台語對話 + 台羅轉換）
+        ↓
+      TTS API （語音合成）
+
+📌 示例流程（Python）：
+
+import requests
+import base64
+import json
+
+# 1. 讀取音頻文件
+with open("my_audio.wav", "rb") as f:
+    audio_bytes = f.read()
+
+# 2. 發送到 STT API
+stt_response = requests.post(
+    "http://localhost:5000/api/stt",
+    json={
+        "audio": base64.b64encode(audio_bytes).decode('utf-8'),
+        "sample_rate": 16000
+    }
+).json()
+
+if stt_response["success"]:
+    user_text = stt_response["transcript"]
+    print(f"STT 結果: {user_text}")
+    print(f"提供者: {stt_response['provider']}")
+    print(f"信心度: {stt_response.get('confidence', 'N/A')}")
+    
+    # 3. 發送到 Chat API（對話）
+    chat_response = requests.post(
+        "http://localhost:5000/api/chat",
+        json={"message": user_text}
+    ).json()
+    
+    if chat_response["success"]:
+        reply_text = chat_response["reply"]
+        reply_tlpa = chat_response["reply_tlpa"]
+        print(f"\\nChat 回應: {reply_text}")
+        print(f"台羅拼音: {reply_tlpa}")
+        
+        # 4. 發送到 TTS API（語音合成）
+        tts_response = requests.post(
+            "http://localhost:5000/api/tts",
+            json={"text": reply_tlpa}
+        ).json()
+        
+        if tts_response["success"]:
+            import base64
+            audio_output = base64.b64decode(tts_response["audio"])
+            with open("output.wav", "wb") as f:
+                f.write(audio_output)
+            print(f"\\n語音已保存: output.wav")
+
+### 4️⃣  STT 信心度調整
+
+若要調整自動切換的門檻，編輯：
+integrated_voice_chat_api.py 中的 GOOGLE_CONF_MIN 變量
+
+目前設定：
+  GOOGLE_CONF_MIN = 0.80  # 80% 以上用 Google，低於此值用 Yating
+
+可改為：
+  0.70 = 更傾向 Google（只有很低信心才切 Yating）
+  0.90 = 更傾向 Yating（高要求下才用 Google）
+
+### 5️⃣  Yating STT 配置
+
+Yating STT 使用 WebSocket 連接。
+設定位置：integrated_voice_chat_api.py
+
+# Yating STT 設定（台語優先）
+YATING_API_KEY = os.getenv("YATING_API_KEY") or ""
+YATING_PIPELINE = "asr-zh-en-nan"  # 選項: asr-zh-en-std（標準華語+英文）
+YATING_TOKEN_URL = "https://asr.api.yating.tw/v1/token"
+YATING_WS_URL = "wss://asr.api.yating.tw/ws/v1/"
+
+若環境變量中無 YATING_API_KEY，使用默認 API Key（可能有限制）。
+
+### 6️⃣  測試 STT 路由
+
+運行測試腳本（使用現有 WAV 檔案）：
+
+cd /home/wizard/專題tts
+conda run -n c2t python3 test_stt_routing.py
+
+該腳本會：
+  1. 檢查 API 服務狀態
+  2. 列出可用的測試 WAV 檔案
+  3. 讀取選定檔案並發送到 STT API
+  4. 顯示詳細的路由決策過程
+
+### 7️⃣  常見問題
+
+Q1：為什麼有時候用 Google，有時候用 Yating？
+A：根據 Google STT 的信心度決定。信心度低表示不確定，
+   改用 Yating 的台語專用模型。
+
+Q2：Yating 沒有信心度，怎麼辦？
+A：Yating 是 WebSocket 流式識別，不提供信心度數值。
+   結果會在 JSON 的 confidence 字段為 null，
+   但會保留 Google 的信心度供參考。
+
+Q3：如何知道用了哪個 STT？
+A：查看回應的 provider 字段：
+   - "google" = Google STT（高信心度）
+   - "yating" = Yating STT（Google 低信心時使用）
+   - "google_low_conf" = Google 低信心（Yating 失敗時降級使用）
+
+Q4：支援的語言有哪些？
+A：
+   Google STT：
+     - nan-TW（台語）：主要
+     - zh-TW（中文）：備選
+     - en-US（英文）：備選
+   Yating STT：
+     - 台語（asr-zh-en-nan）
+
+### 8️⃣  API 端點快速參考
+
+GET  /api/health         - 健康檢查（檢查各服務狀態）
+POST /api/stt            - 語音轉文字（Google + Yating 自動切換）
+POST /api/chat           - LLM 對話（台語回應 + 完整台羅拼音）
+POST /api/tts            - 文字轉語音（返回 Base64 編碼的 WAV）
+POST /api/reset_session  - 重置對話會話
+
+### 9️⃣  架構圖
+
+┌─────────────────────────────────────────────────────────────┐
+│                     語音對話 TTS 系統                        │
+├─────────────────────────────────────────────────────────────┤
+│                                                               │
+│  語音文件 ──┐                                                │
+│  麥克風    ├──→ STT API ──→ [ 信心度檢查 ]                   │
+│            │                ├→ Google (≥80%)                │
+│            └─ Base64        └→ Yating (<80%)                │
+│                                    ↓                         │
+│                                  台語文字                    │
+│                                    ↓                         │
+│                            Chat API (LLM)                   │
+│                         ├─ 台語回應                          │
+│                         └─ 完整台羅拼音                       │
+│                                    ↓                         │
+│                             TTS API                         │
+│                         (Tacotron2+WaveGlow)                │
+│                                    ↓                         │
+│                          WAV 音頻（Base64）                  │
+│                                    ↓                         │
+│                         播放或存檔                            │
+│                                                               │
+└─────────────────────────────────────────────────────────────┘
+
+════════════════════════════════════════════════════════════════════════════════
+
+完成！語音輸入功能已完全整合到系統中。
+按需要調整 GOOGLE_CONF_MIN 或其他參數。
+""")

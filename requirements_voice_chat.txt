@@ -1,0 +1,22 @@
+# 台語 AI 語音對話系統 - 依賴套件
+
+# Flask 相關
+flask>=2.0.0
+flask-cors>=3.0.10
+
+# Google Cloud (STT)
+google-cloud-speech>=2.0.0
+pyaudio>=0.2.11
+
+# OpenAI (LLM)
+openai>=1.0.0
+python-dotenv>=0.19.0
+
+# 音頻處理
+scipy>=1.7.0
+librosa>=0.9.0
+soundfile>=0.10.3
+
+# 其他工具
+numpy>=1.19.0
+tqdm>=4.62.0

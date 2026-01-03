@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>系統架構圖 - 台語 AI 語音對話系統</title>
+    <style>
+        body {
+            font-family: "Microsoft JhengHei", "微軟正黑體", sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            margin: 0;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        h1 {
+            text-align: center;
+            color: #667eea;
+            margin-bottom: 40px;
+        }
+        .diagram {
+            margin: 30px 0;
+        }
+        .box {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            margin: 10px;
+            font-weight: bold;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+        .box-large {
+            padding: 30px;
+            font-size: 1.3em;
+        }
+        .box-medium {
+            padding: 20px;
+            font-size: 1.1em;
+        }
+        .box-small {
+            padding: 15px;
+            font-size: 0.9em;
+        }
+        .arrow {
+            text-align: center;
+            font-size: 2em;
+            color: #667eea;
+            margin: 10px 0;
+        }
+        .row {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .column {
+            flex: 1;
+            min-width: 200px;
+            padding: 10px;
+        }
+        .legend {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 30px;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin: 10px 0;
+        }
+        .legend-box {
+            width: 40px;
+            height: 40px;
+            border-radius: 5px;
+            margin-right: 15px;
+        }
+        .color-stt { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        .color-llm { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
+        .color-tts { background: linear-gradient(135deg, #48c6ef 0%, #6f86d6 100%); }
+        .info-box {
+            background: #e3f2fd;
+            border-left: 4px solid #2196F3;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎙️ 台語 AI 語音對話系統架構圖</h1>
+        
+        <div class="info-box">
+            <strong>📌 系統說明</strong><br>
+            本系統整合三個獨立模組 (STT、LLM、TTS)，提供完整的語音對話功能。
+            用戶說話 → 語音識別 → AI 回應 → 語音合成 → 播放輸出
+        </div>
+
+        <div class="diagram">
+            <h2 style="color: #667eea; border-bottom: 3px solid #667eea; padding-bottom: 10px;">
+                1️⃣ 完整對話流程
+            </h2>
+            
+            <div class="box box-large" style="background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);">
+                🗣️ 用戶說話<br>
+                <small style="opacity: 0.9;">"你好，今天天氣真好"</small>
+            </div>
+            
+            <div class="arrow">⬇️</div>
+            
+            <div class="box box-large color-stt">
+                🎤 STT 語音識別<br>
+                <small style="opacity: 0.9;">Google Cloud Speech-to-Text</small>
+            </div>
+            
+            <div class="arrow">⬇️</div>
+            
+            <div class="box box-medium" style="background: #6c757d;">
+                📝 文字訊息<br>
+                <small style="opacity: 0.9;">"你好，今天天氣真好"</small>
+            </div>
+            
+            <div class="arrow">⬇️</div>
+            
+            <div class="box box-large color-llm">
+                🤖 LLM 對話處理<br>
+                <small style="opacity: 0.9;">OpenAI GPT-4 (Fine-tuned)</small>
+            </div>
+            
+            <div class="arrow">⬇️</div>
+            
+            <div class="box box-medium" style="background: #6c757d;">
+                💬 AI 回應文字<br>
+                <small style="opacity: 0.9;">"是啊！今天確實是個好天氣"</small>
+            </div>
+            
+            <div class="arrow">⬇️</div>
+            
+            <div class="box box-large color-tts">
+                🔊 TTS 語音合成<br>
+                <small style="opacity: 0.9;">Tacotron2 + WaveGlow</small>
+            </div>
+            
+            <div class="arrow">⬇️</div>
+            
+            <div class="box box-large" style="background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);">
+                🔈 播放台語語音<br>
+                <small style="opacity: 0.9;">用戶聆聽 AI 回應</small>
+            </div>
+        </div>
+
+        <div class="diagram">
+            <h2 style="color: #667eea; border-bottom: 3px solid #667eea; padding-bottom: 10px;">
+                2️⃣ 系統架構層級
+            </h2>
+            
+            <div class="row">
+                <div class="column">
+                    <div class="box box-medium" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                        🌐 前端界面<br>
+                        <small>HTML + JavaScript</small>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="arrow">⬇️ HTTP API ⬇️</div>
+            
+            <div class="row">
+                <div class="column">
+                    <div class="box box-medium" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+                        ⚙️ Flask 後端<br>
+                        <small>API 服務 (Port 5000)</small>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="arrow">⬇️ 模組調用 ⬇️</div>
+            
+            <div class="row">
+                <div class="column">
+                    <div class="box box-small color-stt">
+                        STT 模組<br>
+                        <small>yating1</small>
+                    </div>
+                </div>
+                <div class="column">
+                    <div class="box box-small color-llm">
+                        LLM 模組<br>
+                        <small>wadija_llm</small>
+                    </div>
+                </div>
+                <div class="column">
+                    <div class="box box-small color-tts">
+                        TTS 模組<br>
+                        <small>taiwanese_*</small>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="arrow">⬇️ 外部服務 ⬇️</div>
+            
+            <div class="row">
+                <div class="column">
+                    <div class="box box-small" style="background: #4285f4;">
+                        Google Cloud<br>
+                        <small>Speech API</small>
+                    </div>
+                </div>
+                <div class="column">
+                    <div class="box box-small" style="background: #10a37f;">
+                        OpenAI<br>
+                        <small>GPT-4 API</small>
+                    </div>
+                </div>
+                <div class="column">
+                    <div class="box box-small" style="background: #ff6b6b;">
+                        本地模型<br>
+                        <small>Tacotron2</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="diagram">
+            <h2 style="color: #667eea; border-bottom: 3px solid #667eea; padding-bottom: 10px;">
+                3️⃣ API 端點列表
+            </h2>
+            
+            <div class="row">
+                <div class="column">
+                    <div class="box box-small" style="background: #28a745;">
+                        GET /api/health<br>
+                        <small>健康檢查</small>
+                    </div>
+                </div>
+                <div class="column">
+                    <div class="box box-small color-stt">
+                        POST /api/stt<br>
+                        <small>語音轉文字</small>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="row">
+                <div class="column">
+                    <div class="box box-small color-llm">
+                        POST /api/chat<br>
+                        <small>LLM 對話</small>
+                    </div>
+                </div>
+                <div class="column">
+                    <div class="box box-small color-tts">
+                        POST /api/tts<br>
+                        <small>文字轉語音</small>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="row">
+                <div class="column">
+                    <div class="box box-small" style="background: #ffc107;">
+                        POST /api/reset_session<br>
+                        <small>重置會話</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="legend">
+            <h3 style="margin-top: 0;">📊 圖例說明</h3>
+            <div class="legend-item">
+                <div class="legend-box color-stt"></div>
+                <div>
+                    <strong>STT (語音轉文字)</strong><br>
+                    <small>使用 Google Cloud Speech-to-Text，支援台語、華語、英語</small>
+                </div>
+            </div>
+            <div class="legend-item">
+                <div class="legend-box color-llm"></div>
+                <div>
+                    <strong>LLM (對話 AI)</strong><br>
+                    <small>使用 OpenAI GPT-4 微調模型，具備 RAG 增強功能</small>
+                </div>
+            </div>
+            <div class="legend-item">
+                <div class="legend-box color-tts"></div>
+                <div>
+                    <strong>TTS (語音合成)</strong><br>
+                    <small>使用 Tacotron2 + WaveGlow，生成自然的台語語音</small>
+                </div>
+            </div>
+        </div>
+
+        <div class="info-box" style="background: #e8f5e9; border-left-color: #4caf50;">
+            <strong>✅ 系統特點</strong><br>
+            • 完全整合三個獨立模組<br>
+            • 支援多語言輸入 (台語/華語/英語)<br>
+            • 對話歷史管理 (最近 20 輪)<br>
+            • 即時語音播放功能<br>
+            • 現代化響應式界面
+        </div>
+
+        <div style="text-align: center; margin-top: 40px; color: #666;">
+            <p><strong>台語 AI 語音對話系統</strong></p>
+            <p>版本 1.0.0 | 2025-12-17</p>
+            <p style="margin-top: 20px;">
+                <a href="voice_chat_interface.html" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px 30px; text-decoration: none; border-radius: 10px; display: inline-block; font-weight: bold;">
+                    🚀 開始使用系統
+                </a>
+            </p>
+        </div>
+    </div>
+</body>
+</html>

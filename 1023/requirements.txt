@@ -1,0 +1,14 @@
+fairseq==0.12.2
+torch==1.13.1
+torchaudio==0.13.1
+subword-nmt==0.3.8
+flask==2.2.5
+flask-cors==5.0.0
+unidecode==1.4.0
+tensorboardX==2.5
+sacrebleu==2.4.2
+sacremoses==0.0.53
+numpy==1.21.6
+tqdm==4.67.1
+requests==2.31.0
+regex==2024.4.16
