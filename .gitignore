@@ -14,11 +14,11 @@ __pycache__/
 
 # Audio and large binaries
 *.wav
-*.pt
-*.bin
+# *.pt - removed, using Git LFS
+# *.bin - removed, using Git LFS
 *.ckpt
-checkpoint_*
-*/tacotron2/model/
+# checkpoint_* - removed, using Git LFS
+# */tacotron2/model/ - removed, using Git LFS
 
 # Misc
 .DS_Store
