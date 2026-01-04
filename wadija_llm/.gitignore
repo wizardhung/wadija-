@@ -1,0 +1,26 @@
+# Created by venv; see https://docs.python.org/3/library/venv.html
+# --- 安全性 ---
+.env
+.env.local
+config.py
+secrets.py
+
+# --- Python 編譯檔 (垃圾檔案) ---
+__pycache__/
+*.py[cod]
+*$py.class
+
+# --- 虛擬環境 (最重要！) ---
+# 你的虛擬環境資料夾名稱如果是別的，請在這裡修改
+venv/
+env/
+.venv/
+.env/
+
+# --- IDE 設定檔 (如果你用 VS Code 或 PyCharm) ---
+.vscode/
+.idea/
+
+# --- 其他常見 ---
+.DS_Store
+*.log

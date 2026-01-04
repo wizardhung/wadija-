@@ -1,0 +1,19 @@
+export GOOGLE_APPLICATION_CREDENTIALS="\\wsl.localhost\Ubuntu\home\wizard\專題tts\yating1\newproject0901-470807-038aaaad5572.json"
+python3.11 main_corrector.py
+
+製作ppt 介紹我功能可以解決什麼問題 台語部分使用yating的API 我們製作這樣的步驟是為了達到省錢的效果
+使用流程是：
+按enter開啟錄音
+錄音完成後按enter結束錄音
+錄音結束後系統會自動將語音上傳至google的API進行辨識
+辨識完成後系統會自動將辨識結果上傳至合理度API進行合理度分析
+辨識完成後
+我們可以看到辨識結果、信心度與合理度
+信心度低於0.8或是合理度低於0.5，我們會將語音內容轉為yating的API進行二次辨識辨，辯識結果會顯示在下方
+台語說“今天要去看醫生”
+我們可以看到信心度0.75 < 0.8，改跑yating的API
+辨識結果為：中文的今天要去看醫生
+我現在用中文說“今天要去看醫生”則會看到
+辨識結果為：中文的今天要去看醫生
+信心度0.95 > 0.8，直接使用google的API
+合理度0.9 > 0.5，合理度也很高

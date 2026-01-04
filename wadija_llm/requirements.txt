@@ -1,0 +1,16 @@
+# Wadi+ 台語長輩陪伴系統 - Python 依賴套件
+# 更新日期: 2025-12-01
+
+# OpenAI API Client
+openai>=1.0.0
+
+# 環境變數管理
+python-dotenv>=1.0.0
+
+# 型別標註支援 (Python 3.8-3.9 需要)
+typing-extensions>=4.5.0
+
+# 可選：進階功能套件（若需要擴充功能時使用）
+# pdfplumber>=0.11.0        # PDF 文字擷取
+# pdfminer.six>=20221105    # PDF 解析
+# tqdm>=4.65.0              # 進度條顯示

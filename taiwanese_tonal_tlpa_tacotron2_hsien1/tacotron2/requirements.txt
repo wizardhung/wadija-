@@ -1,0 +1,11 @@
+librosa
+unidecode
+inflect
+tensorboardX
+matplotlib
+sacremoses
+subword_nmt
+fairseq
+falcon
+sox
+denoiser

@@ -1,0 +1,17 @@
+__pycache__/
+*.pyc
+/dist
+/build
+/MANIFEST
+/venv
+/外部程式/*
+/文件/_*
+/.settings
+/node_modules
+/.tox
+/.coverage
+/.project
+/.pydevproject
+tai5_uan5_gian5_gi2_kang1_ku7.egg-info/
+html/
+coverage.xml
